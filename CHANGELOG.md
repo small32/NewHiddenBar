@@ -6,6 +6,19 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) an
 
 Hidden Bar Revived is a community-maintained continuation of the original [Hidden Bar](https://github.com/dwarvesf/hidden) by Dwarves Foundation. Versions prior to 2.0.0 were released by the original authors; see the [upstream repository](https://github.com/dwarvesf/hidden) for that history.
 
+## [2.1.1] — 2026-08-14
+
+### Fixed
+- **"Enable always hidden section" did nothing until the app was restarted** ([#2](https://github.com/sdenike/hidden-revived/issues/2)). `StatusBarController` read `Preferences.alwaysHiddenSectionEnabled` in a *stored* property initializer, so the width of the always-hidden separator was frozen at whatever the preference was when the controller was constructed. Since the preference defaults to off, that width was `0`. Ticking the checkbox later did fire `.alwayHideToggle` and did create the `NSStatusItem` — but at zero width, which is invisible. The separator only appeared after a relaunch, when the initializer finally saw `true`.
+
+  The width is now a computed property derived from the preference on every read, and `toggleStatusBarIfNeeded()` re-applies it after creating the item. Enabling the section takes effect immediately.
+- Enabling the always hidden section while the separators were hidden (option-click on the main icon) created the new separator at its normal 20pt width instead of the collapsed width, leaving the section unable to hide anything until the separators were toggled twice. The item is now created at the correct width for the current separator state.
+
+### Changed
+- Project is now signed with the `Shelby Denike (485WH9DHS4)` development team for local Xcode builds — `DEVELOPMENT_TEAM` and an `Apple Development` signing identity are set on the app target. Developer ID release signing is unaffected: `scripts/release.sh` passes `CODE_SIGN_IDENTITY` on the `xcodebuild` command line, which overrides the project-level setting.
+- Declared `LSApplicationCategoryType = public.app-category.utilities`.
+- Project format upgraded to `objectVersion = 54`, and the stale `Hidden Bar.app` product reference renamed to match the actual `Hidden Bar Revived` product name.
+
 ## [2.1.0] — 2026-04-28
 
 ### Changed

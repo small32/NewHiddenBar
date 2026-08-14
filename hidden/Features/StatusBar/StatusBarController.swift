@@ -22,8 +22,13 @@ class StatusBarController {
     private var btnHiddenLength: CGFloat = 20
     private var btnHiddenCollapseLength: CGFloat = 2000
     
-    private var btnAlwaysHiddenLength: CGFloat = Preferences.alwaysHiddenSectionEnabled ? 20 : 0
-    private var btnAlwaysHiddenEnableExpandCollapseLength: CGFloat = Preferences.alwaysHiddenSectionEnabled ? 2000 : 0
+    // Derived from the preference on every read. A stored property would be frozen at the
+    // value the preference had when StatusBarController was constructed, so enabling the
+    // always hidden section at runtime would create a zero-width (invisible) status item.
+    private var btnAlwaysHiddenLength: CGFloat {
+        Preferences.alwaysHiddenSectionEnabled ? 20 : 0
+    }
+    private var btnAlwaysHiddenEnableExpandCollapseLength: CGFloat = 0
     
     private let imgIconLine = NSImage(named:NSImage.Name("ic_line"))
     
@@ -277,13 +282,19 @@ extension StatusBarController {
 
         if Preferences.alwaysHiddenSectionEnabled {
             if self.btnAlwaysHidden == nil {
-                self.btnAlwaysHidden = NSStatusBar.system.statusItem(withLength: btnAlwaysHiddenLength)
-                if let button = btnAlwaysHidden?.button {
+                let statusItem = NSStatusBar.system.statusItem(withLength: btnAlwaysHiddenLength)
+                if let button = statusItem.button {
                     button.image = self.imgIconLine
                     button.appearsDisabled = true
                 }
-                self.btnAlwaysHidden?.autosaveName = "hiddenbar_terminate"
+                statusItem.autosaveName = "hiddenbar_terminate"
+                self.btnAlwaysHidden = statusItem
             }
+            // Re-apply the width every time: the item may have been created while the
+            // separators were hidden, in which case it has to start out collapsed.
+            self.btnAlwaysHidden?.length = Preferences.areSeparatorsHidden
+                ? btnAlwaysHiddenEnableExpandCollapseLength
+                : btnAlwaysHiddenLength
         } else {
             if let statusItem = self.btnAlwaysHidden {
                 NSStatusBar.system.removeStatusItem(statusItem)

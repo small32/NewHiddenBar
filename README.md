@@ -29,6 +29,7 @@ The upstream project has been inactive for an extended period. This fork picks u
 - **Additional localizations.** Italian, Ukrainian, and Turkish added to the existing ten languages.
 - **Minimum macOS raised to 13 (Ventura).** Aligns with Apple's currently-supported macOS releases as of 2026 and lets the codebase drop a stack of `#available` checks, the legacy upstream PNG icon assets, and several compatibility branches that targeted macOS 10.13 → 12. A migration to `SMAppService` for launch-at-login is planned next, which will also retire the LauncherApplication helper target.
 - **Rebranded with full attribution.** App name is now "Hidden Bar Revived" and the About screen credits both Dwarves Foundation and this fork's maintainer.
+- **"Enable always hidden section" applies immediately** (2.1.1). It previously needed an app restart before the second separator would appear.
 
 See [CHANGELOG.md](CHANGELOG.md) for full release notes.
 
@@ -62,6 +63,8 @@ Coming soon. The fork is being prepared for Mac App Store submission under a new
 - `⌘` + drag to move icons around in the menu bar, including into and out of Hidden Bar's hidden section
 - Click the arrow icon to collapse / expand the hidden section
 - Optional global hotkey for toggling, configurable in Preferences → General
+- Option-click the arrow icon to show / hide the separators themselves
+- Preferences → General → **Enable always hidden section** adds a second separator. Icons you `⌘` + drag to the far side of it stay hidden even when the bar is expanded — they are only revealed by option-clicking the arrow icon
 
 <p align="center">
 	<img src="img/tutorial.gif" alt="Tutorial showing how to hide icons">
