@@ -6,6 +6,21 @@ this file is the play-by-play.
 
 ---
 
+## 2026-08-14 — 2.1.1 released, issue #2 closed
+
+CI run 31805857750 succeeded. `HiddenBarRevived-2.1.1.zip` is published and not a draft, the
+download URL returns 200, and `sdenike/homebrew-tap`'s `Casks/hidden-revived.rb` was auto-bumped
+to `version "2.1.1"` / `sha256 "12bcc1d0cff4881ef38b0530fd2b334d75e9ec05217ea10fff8be0e1ddb74d74"`.
+This was the first fully hands-off tag-push release; 2.1.0 had failed CI at the Xcode/SDK gate and
+was cut locally.
+
+Issue #2 was auto-closed by the `Closes #2` commit trailer and has two comments: the technical
+root-cause writeup, then a short confirmation that the build is live.
+
+**If interrupted here.** Nothing outstanding for 2.1.1. The one loose end is that the fix is
+compile-verified but never exercised by hand — install 2.1.1, tick "Enable always hidden section"
+with the app running, and confirm a second separator appears without a relaunch.
+
 ## 2026-08-14 — 2.1.1: fix "always hidden" section doing nothing (issue #2)
 
 **What.** `StatusBarController.btnAlwaysHiddenLength` was a *stored* property whose initializer
