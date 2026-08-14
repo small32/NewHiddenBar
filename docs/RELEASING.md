@@ -35,14 +35,17 @@ manual to do beyond keeping Xcode current. The CI workflow runs on
    ```bash
    shasum -a 256 HiddenBarRevived-2.0.x.zip
    ```
-4. **Update the Homebrew tap** — edit `Casks/hidden-revived.rb` in
-   `github.com/sdenike/homebrew-hidden-revived`:
-   ```ruby
-   version "2.0.x"
-   sha256 "<new-sha256>"
-   ```
-   Commit, push to `main`. Users on `brew upgrade --cask hidden-revived`
-   will pick it up on their next run.
+4. **The Homebrew cask updates itself.** The release workflow rewrites `version`
+   and `sha256` in `Casks/hidden-revived.rb` in
+   [`sdenike/homebrew-tap`](https://github.com/sdenike/homebrew-tap) and commits
+   there, so there is nothing to edit by hand. Users pick it up on their next
+   `brew upgrade --cask hidden-revived`.
+
+   This needs a `HOMEBREW_TAP_TOKEN` secret on this repository — a PAT with
+   `contents: write` on `sdenike/homebrew-tap`. A workflow's built-in
+   `GITHUB_TOKEN` is scoped to its own repository and cannot push to the tap. If
+   the secret is missing the step warns and succeeds, so the release itself is
+   never blocked by it.
 
 ## Local-only signing (without GitHub Actions)
 

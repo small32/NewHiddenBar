@@ -43,11 +43,15 @@ See [CHANGELOG.md](CHANGELOG.md) for full release notes.
 ### Homebrew
 
 ```sh
-brew tap sdenike/hidden-revived
+brew tap sdenike/tap
 brew install --cask hidden-revived
 ```
 
-The cask lives in [`sdenike/homebrew-hidden-revived`](https://github.com/sdenike/homebrew-hidden-revived) and pulls the signed + notarized `.zip` directly from this repo's GitHub Releases.
+The cask lives in [`sdenike/homebrew-tap`](https://github.com/sdenike/homebrew-tap) and pulls the signed + notarized `.zip` directly from this repo's GitHub Releases.
+
+That tap serves every one of my applications, so you only need to run `brew tap` once — anything added later installs with just `brew install --cask <name>`.
+
+> **Moved from `sdenike/homebrew-hidden-revived`.** If you tapped that repository before August 2026, run `brew untap sdenike/hidden-revived` and then the two commands above.
 
 ### Mac App Store
 
