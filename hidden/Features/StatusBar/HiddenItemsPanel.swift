@@ -82,13 +82,21 @@ final class HiddenItemsPanelController: NSObject {
         self.anchorFrame = anchorFrame
         dismiss()
 
-        hbDebugLog("show() screenCaptureAccess=\(CGPreflightScreenCaptureAccess())")
+        var hasScreenAccess = CGPreflightScreenCaptureAccess()
+        if !hasScreenAccess {
+            // Trigger the system authorization sheet directly (ad-hoc signed
+            // builds change their cdhash on every rebuild, so TCC treats each
+            // build as a new app and the old grant lapses).
+            _ = CGRequestScreenCaptureAccess()
+            hasScreenAccess = CGPreflightScreenCaptureAccess()
+        }
+        hbDebugLog("show() screenCaptureAccess=\(hasScreenAccess)")
 
-        guard CGPreflightScreenCaptureAccess() else {
+        guard hasScreenAccess else {
             showMessagePanel(
                 anchorFrame: anchorFrame,
                 title: "需要屏幕录制权限",
-                subtitle: "要显示被隐藏的菜单栏图标，需要屏幕录制权限。请在系统设置中授权后重试。",
+                subtitle: "已为你弹出系统授权框，请点击「允许」。若未出现，请到 系统设置 → 隐私与安全性 → 屏幕录制 中勾选 NewHiddenBar 后重试。",
                 buttonTitle: "打开系统设置",
                 buttonURL: URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")
             )
