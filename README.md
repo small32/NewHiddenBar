@@ -87,10 +87,10 @@ Bug reports and focused PRs are welcome. The goal of this fork is to keep NewHid
 ## Credits
 
 - **Original authors:** [Dwarves Foundation](https://github.com/dwarvesf) — Thanh Nguyen, Phuc Le Dien, and the wider contributor community
-- **Fork source:** [Shelby DeNike](https://github.com/sdenike) — maintainer of [Hidden Bar Revived](https://github.com/sdenike/hidden-revived), from which this project is forked
+- **Upstream fork:** [Hidden Bar Revived](https://github.com/sdenike/hidden-revived) by [Shelby DeNike](https://github.com/sdenike) — this project is forked from it
 - **Community fixes incorporated into 2.0:** @laveez (ultrawide / multi-monitor), @huynguyenh and @rm335 (memory leaks), @gmcinalli (Italian), @voltangle (Ukrainian), @Metekilic (Turkish)
 - **Upstream contributor list:** [dwarvesf/hidden/graphs/contributors](https://github.com/dwarvesf/hidden/graphs/contributors)
-- **Maintainer of this fork:** [small32](https://github.com/small32)
+- **Maintainer:** [small32](https://github.com/small32)
 
 ## License
 
