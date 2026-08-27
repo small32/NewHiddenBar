@@ -136,6 +136,7 @@ class StatusBarController {
     }
     
     @objc func btnExpandCollapsePressed(sender: NSStatusBarButton) {
+        hbDebugLog("btnExpandCollapsePressed currentEvent=\(String(describing: NSApp.currentEvent?.type))")
         if let event = NSApp.currentEvent {
             
             let isOptionKeyPressed = event.modifierFlags.contains(NSEvent.ModifierFlags.option)
@@ -145,11 +146,17 @@ class StatusBarController {
             } else {
                 self.showHideSeparatorsAndAlwayHideArea()
             }
+        } else {
+            hbDebugLog("btnExpandCollapsePressed currentEvent is nil")
         }
     }
     
     private func toggleHiddenPanel() {
-        guard let frame = btnExpandCollapse.button?.window?.frame else { return }
+        guard let frame = btnExpandCollapse.button?.window?.frame else {
+            hbDebugLog("toggleHiddenPanel button?.window is nil")
+            return
+        }
+        hbDebugLog("toggleHiddenPanel frame=\(frame) isCollapsed=\(isCollapsed)")
         hiddenItemsPanelController.toggle(anchorFrame: frame)
     }
     

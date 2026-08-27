@@ -27,6 +27,23 @@ struct HiddenMenuItem {
 
 // MARK: - HiddenItemsPanelController
 
+/// Writes a diagnostic line to /tmp/NewHiddenBar-debug.log (app sandbox is off).
+/// Used to trace "nothing happens when clicking the collapse button".
+func hbDebugLog(_ message: String) {
+    let line = "[NewHiddenBar \(Date())] \(message)\n"
+    let url = URL(fileURLWithPath: "/tmp/NewHiddenBar-debug.log")
+    if let data = line.data(using: .utf8) {
+        if FileManager.default.fileExists(atPath: "/tmp/NewHiddenBar-debug.log"),
+           let fh = try? FileHandle(forWritingTo: url) {
+            fh.seekToEndOfFile()
+            fh.write(data)
+            try? fh.close()
+        } else {
+            try? data.write(to: url)
+        }
+    }
+}
+
 final class HiddenItemsPanelController: NSObject {
 
     private weak var statusBarController: StatusBarController?
@@ -65,6 +82,8 @@ final class HiddenItemsPanelController: NSObject {
         self.anchorFrame = anchorFrame
         dismiss()
 
+        hbDebugLog("show() screenCaptureAccess=\(CGPreflightScreenCaptureAccess())")
+
         guard CGPreflightScreenCaptureAccess() else {
             showMessagePanel(
                 anchorFrame: anchorFrame,
@@ -77,11 +96,23 @@ final class HiddenItemsPanelController: NSObject {
         }
 
         let items = Self.hiddenMenuItems()
-        guard !items.isEmpty else { return }
+        hbDebugLog("show() hiddenMenuItems count=\(items.count)")
+
+        guard !items.isEmpty else {
+            showMessagePanel(
+                anchorFrame: anchorFrame,
+                title: "没有检测到隐藏的图标",
+                subtitle: "请先在菜单栏按住 ⌘ 拖动要隐藏的图标，把它移到分隔条右侧，然后再点击折叠按钮。",
+                buttonTitle: nil,
+                buttonURL: nil
+            )
+            return
+        }
 
         // Temporarily reveal the hidden items so their windows can be captured,
         // then hide them again before showing the panel.
         statusBarController?.tempExpandForClick()
+        hbDebugLog("show() tempExpandForClick called")
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
             guard let self else { return }
@@ -96,6 +127,7 @@ final class HiddenItemsPanelController: NSObject {
             }
 
             self.statusBarController?.restoreCollapse()
+            hbDebugLog("show() captured \(captured.count)/\(items.count), restoreCollapse called")
 
             guard !captured.isEmpty else {
                 self.showMessagePanel(
@@ -124,12 +156,14 @@ final class HiddenItemsPanelController: NSObject {
     /// no single-direction filtering.
     static func hiddenMenuItems() -> [HiddenMenuItem] {
         guard let list = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else {
+            hbDebugLog("hiddenMenuItems() CGWindowList nil")
             return []
         }
         let myPID = ProcessInfo.processInfo.processIdentifier
         let visible = visibleScreenBounds
+        var droppedCount = 0
 
-        return list.compactMap { info in
+        let result = list.compactMap { info -> HiddenMenuItem? in
             guard
                 let windowID = (info[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
                 let ownerPID = (info[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
@@ -141,7 +175,10 @@ final class HiddenItemsPanelController: NSObject {
                 !frame.intersects(visible),
                 frame.width >= 8,
                 frame.height >= 8
-            else { return nil }
+            else {
+                droppedCount += 1
+                return nil
+            }
 
             let ownerName = info[kCGWindowOwnerName as String] as? String
             if ownerName == "Window Server" { return nil }
@@ -155,6 +192,9 @@ final class HiddenItemsPanelController: NSObject {
             )
         }
         .sorted { $0.offScreenFrame.minX < $1.offScreenFrame.minX }
+
+        hbDebugLog("hiddenMenuItems() windows=\(list.count) kept=\(result.count) dropped=\(droppedCount)")
+        return result
     }
 
     /// Returns the most recent frame of the given item.
@@ -223,7 +263,7 @@ final class HiddenItemsPanelController: NSObject {
         installDismissMonitor()
     }
 
-    private func showMessagePanel(anchorFrame: CGRect, title: String, subtitle: String, buttonTitle: String, buttonURL: URL?) {
+    private func showMessagePanel(anchorFrame: CGRect, title: String, subtitle: String, buttonTitle: String?, buttonURL: URL?) {
         let content = HiddenItemsMessageView(title: title, subtitle: subtitle, buttonTitle: buttonTitle, buttonURL: buttonURL)
         let size = content.panelSize
         let panel = NSPanel(
