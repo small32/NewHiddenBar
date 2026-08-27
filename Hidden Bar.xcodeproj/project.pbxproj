@@ -645,7 +645,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.1.1;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.sdenike.hiddenbar;
 				PRODUCT_NAME = "NewHiddenBar";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -672,7 +672,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 2.1.1;
+				MARKETING_VERSION = 3.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.sdenike.hiddenbar;
 				PRODUCT_NAME = "NewHiddenBar";
 				PROVISIONING_PROFILE_SPECIFIER = "";
