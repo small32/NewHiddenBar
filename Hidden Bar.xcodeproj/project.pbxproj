@@ -41,6 +41,7 @@
 		967F4B2524169BC800F18D3C /* String+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 967F4B2424169BC800F18D3C /* String+Extension.swift */; };
 		967F4B2824169CAF00F18D3C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 967F4B2A24169CAF00F18D3C /* Localizable.strings */; };
 		D5E1F0A10100000000000001 /* NSView+Glass.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5E1F0A20100000000000001 /* NSView+Glass.swift */; };
+		E1A2B3C40100000000000002 /* HiddenItemsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A2B3C40100000000000001 /* HiddenItemsPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -121,6 +122,7 @@
 		C9BE9CFF27CBF54500DC3618 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/Main.strings; sourceTree = "<group>"; };
 		C9BE9D0027CBF54500DC3618 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/Localizable.strings; sourceTree = "<group>"; };
 		D5E1F0A20100000000000001 /* NSView+Glass.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSView+Glass.swift"; sourceTree = "<group>"; };
+		E1A2B3C40100000000000001 /* HiddenItemsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenItemsPanel.swift; sourceTree = "<group>"; };
 		FF57A44A25E6C50200988FC2 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Main.strings"; sourceTree = "<group>"; };
 		FF57A44B25E6C50200988FC2 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		FF8A0FB5265E10DB00C76226 /* zh-Hant */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hant"; path = "zh-Hant.lproj/Main.strings"; sourceTree = "<group>"; };
@@ -170,6 +172,7 @@
 			isa = PBXGroup;
 			children = (
 				92C97B9022018C1F0007559C /* StatusBarController.swift */,
+				E1A2B3C40100000000000001 /* HiddenItemsPanel.swift */,
 			);
 			path = StatusBar;
 			sourceTree = "<group>";
@@ -431,6 +434,7 @@
 				0842CDFB23A9FDD000D14BD4 /* GlobalKeybindingPreferences.swift in Sources */,
 				55F3F11D2608925A0054B881 /* StackView+Extension.swift in Sources */,
 				D5E1F0A10100000000000001 /* NSView+Glass.swift in Sources */,
+				E1A2B3C40100000000000002 /* HiddenItemsPanel.swift in Sources */,
 				08C20FE223AB452C0035D978 /* AboutViewController.swift in Sources */,
 				00137CDF24A63DB1004AC855 /* Notification.Name+Extension.swift in Sources */,
 				08A5F86423AA09F300981CA5 /* UserDefault+Extension.swift in Sources */,

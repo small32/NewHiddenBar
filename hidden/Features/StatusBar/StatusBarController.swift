@@ -13,6 +13,10 @@ class StatusBarController {
     //MARK: - Variables
     private var timer:Timer? = nil
     
+    /// Ice-style popup panel that shows the hidden items instead of revealing
+    /// them directly in the menu bar.
+    private lazy var hiddenItemsPanelController = HiddenItemsPanelController(statusBarController: self)
+    
     //MARK: - BarItems
         
     private let btnExpandCollapse = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
@@ -137,17 +141,22 @@ class StatusBarController {
             let isOptionKeyPressed = event.modifierFlags.contains(NSEvent.ModifierFlags.option)
             
             if event.type == NSEvent.EventType.leftMouseUp && !isOptionKeyPressed{
-                self.expandCollapseIfNeeded()
+                self.toggleHiddenPanel()
             } else {
                 self.showHideSeparatorsAndAlwayHideArea()
             }
         }
     }
     
+    private func toggleHiddenPanel() {
+        guard let frame = btnExpandCollapse.button?.window?.frame else { return }
+        hiddenItemsPanelController.toggle(anchorFrame: frame)
+    }
+    
     func showHideSeparatorsAndAlwayHideArea() {
         Preferences.areSeparatorsHidden ? self.showSeparators() : self.hideSeparators()
         
-        if self.isCollapsed {self.expandMenubar()}
+        if self.isCollapsed {self.toggleHiddenPanel()}
     }
     
     private func showSeparators() {
@@ -174,7 +183,7 @@ class StatusBarController {
         //prevented rapid click cause icon show many in Dock
         if isToggle {return}
         isToggle = true
-        self.isCollapsed ? self.expandMenubar() : self.collapseMenuBar()
+        toggleHiddenPanel()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             self?.isToggle = false
         }
@@ -190,23 +199,19 @@ class StatusBarController {
         if let button = btnExpandCollapse.button {
             button.image = Assets.expandImage
         }
-        if Preferences.useFullStatusBarOnExpandEnabled {
-            NSApp.setActivationPolicy(.accessory)
-            NSApp.deactivate()
-        }
     }
-    private func expandMenubar() {
-        guard self.isCollapsed else {return}
+    
+    /// Temporarily reveals the hidden items so a synthesized click can reach a real item.
+    func tempExpandForClick() {
         btnSeparate.length = btnHiddenLength
+    }
+    
+    /// Re-hides the items after a synthesized click has been delivered.
+    func restoreCollapse() {
+        guard isBtnSeparateValidPosition else { return }
+        btnSeparate.length = btnHiddenCollapseLength
         if let button = btnExpandCollapse.button {
-            button.image = Assets.collapseImage
-        }
-        autoCollapseIfNeeded()
-        
-        if Preferences.useFullStatusBarOnExpandEnabled {
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
-            
+            button.image = Assets.expandImage
         }
     }
     

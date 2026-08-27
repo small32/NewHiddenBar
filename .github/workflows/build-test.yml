@@ -1,0 +1,66 @@
+name: Build Test
+
+# Ad-hoc signed Release build for quick manual testing.
+#
+# Pushes to `main` (and manual dispatch) build the app with the macOS
+# runner's bundled Xcode and upload the .app as a downloadable artifact.
+# No signing certificate or notarization is involved — the app is signed
+# with an ad-hoc identity so it runs locally after removing the quarantine
+# attribute (right-click → Open, or `xattr -dr com.apple.quarantine`).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-test
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Release (ad-hoc)
+    runs-on: macos-latest
+
+    env:
+      PROJECT: "Hidden Bar.xcodeproj"
+      SCHEME: "Hidden Bar"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+          xcodebuild -list -project "$PROJECT"
+
+      - name: Build Release (ad-hoc signed)
+        run: |
+          xcodebuild \
+            -project "$PROJECT" \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -derivedDataPath build \
+            CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="-" \
+            build
+
+      - name: Inspect product
+        run: |
+          ls -la build/Build/Products/Release/
+          codesign -dv "build/Build/Products/Release/Hidden Bar Revived.app" 2>&1 || true
+
+      - name: Zip the app
+        run: |
+          cd build/Build/Products/Release
+          ditto -c -k --sequesterRsrc --keepParent \
+            "Hidden Bar Revived.app" HiddenBarRevived-test.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: HiddenBarRevived-test
+          path: build/Build/Products/Release/HiddenBarRevived-test.zip
+          if-no-files-found: error
