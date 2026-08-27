@@ -4,7 +4,7 @@
 
 ### What NewHiddenBar stores
 
-- **Local user preferences** — your hidden-section configuration, the optional global keyboard shortcut, and similar settings — saved via the standard macOS preferences system at `~/Library/Preferences/com.sdenike.hiddenbar.plist`. These never leave your Mac.
+- **Local user preferences** — your hidden-section configuration, the optional global keyboard shortcut, and similar settings — saved via the standard macOS preferences system at `~/Library/Preferences/com.small32.newhiddenbar.plist`. These never leave your Mac.
 - **No analytics, telemetry, or crash reporting.** Nothing is uploaded anywhere.
 - **No network connections** are made by the app itself. macOS may report a code-signing or notarization check to Apple the first time you launch a downloaded build; that check is performed by macOS, not by NewHiddenBar.
 

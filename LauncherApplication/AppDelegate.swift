@@ -17,7 +17,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        let mainAppIdentifier = "com.sdenike.hiddenbar"
+        let mainAppIdentifier = "com.small32.newhiddenbar"
         let runningApps = NSWorkspace.shared.runningApplications
         let isRunning = !runningApps.filter { $0.bundleIdentifier == mainAppIdentifier }.isEmpty
 

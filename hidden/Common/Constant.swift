@@ -10,7 +10,7 @@ import Foundation
 
 enum Constant {
     static let appName = "NewHiddenBar"
-    static let launcherAppId = "com.sdenike.hiddenbar.launcher"
+    static let launcherAppId = "com.small32.newhiddenbar.launcher"
 
     static var isUsingLTRLanguage = false
 }
