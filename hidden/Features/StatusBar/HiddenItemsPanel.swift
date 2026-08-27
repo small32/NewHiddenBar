@@ -117,17 +117,17 @@ final class HiddenItemsPanelController: NSObject {
     /// Returns the menu bar items that are currently hidden by the collapse separator.
     /// Uses only public CGWindowList APIs.
     ///
-    /// The collapse separator pushes items out of the screen on one side only
-    /// (the right side in LTR layouts, the left side in RTL). Items on the
-    /// opposite side that happen to be off-screen are system-managed overflow
-    /// items and must not be shown in the panel.
+    /// When the collapse separator is stretched the overflowing menu bar
+    /// items are pushed off-screen (which side depends on the running macOS
+    /// and the user's bar layout), so every status-level window whose frame
+    /// is completely outside the visible screens is treated as hidden —
+    /// no single-direction filtering.
     static func hiddenMenuItems() -> [HiddenMenuItem] {
         guard let list = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else {
             return []
         }
         let myPID = ProcessInfo.processInfo.processIdentifier
         let visible = visibleScreenBounds
-        let isLTR = Constant.isUsingLTRLanguage
 
         return list.compactMap { info in
             guard
@@ -137,15 +137,11 @@ final class HiddenItemsPanelController: NSObject {
                 layer == Int(kCGStatusWindowLevel),
                 ownerPID != myPID,
                 let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
-                let frame = CGRect(dictionaryRepresentation: boundsDict)
+                let frame = CGRect(dictionaryRepresentation: boundsDict),
+                !frame.intersects(visible),
+                frame.width >= 8,
+                frame.height >= 8
             else { return nil }
-
-            // 只取被分隔条推出的一侧屏幕外 items，过滤系统自动隐藏项
-            if isLTR {
-                guard frame.minX >= visible.maxX else { return nil }
-            } else {
-                guard frame.maxX <= visible.minX else { return nil }
-            }
 
             let ownerName = info[kCGWindowOwnerName as String] as? String
             if ownerName == "Window Server" { return nil }
