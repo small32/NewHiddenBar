@@ -2,13 +2,18 @@
 //  HiddenItemsPanel.swift
 //  NewHiddenBar
 //
-//  Ice-style popup panel. When the user clicks the collapse button, the hidden
-//  menu bar items stay off-screen; this panel renders a snapshot of each hidden
-//  item and forwards clicks back to the real items by temporarily revealing them
-//  and synthesizing a mouse click.
+//  Popup panel that shows snapshots of the hidden menu bar items and forwards
+//  clicks to them without revealing the whole hidden section.
 //
-//  Requires: Screen Recording permission (to capture other apps' menu bar items)
-//  and Accessibility permission (to synthesize clicks).
+//  Click forwarding follows the approach used by Ice/Thaw: instead of
+//  expanding the collapse separator (which flashes every hidden icon in the
+//  real menu bar), a single item is dragged out of the parked overflow area
+//  next to the collapse button with synthetic Cmd+drag events, clicked there
+//  (so its menu opens right where the panel was), and dragged back once its
+//  menu closes.
+//
+//  Requires: Screen Recording permission (to capture other apps' menu bar
+//  items) and Accessibility permission (to synthesize events).
 //
 
 import AppKit
@@ -25,10 +30,34 @@ struct HiddenMenuItem {
     let offScreenFrame: CGRect
 }
 
+// MARK: - SkyLight capture
+
+/// Loads SkyLight's SLWindowListCreateImageFromArray so off-screen status
+/// item windows can be captured directly. CGWindowListCreateImage returns
+/// nil for windows parked at large negative x on modern macOS; ScreenCaptureKit
+/// rejects them too (-3812). SkyLight is the only public-ish API that works.
+enum SkyLightCapture {
+    private static let handle: UnsafeMutableRawPointer? = {
+        dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_NOW)
+    }()
+
+    private static let createImageFromArray: (@convention(c) (CGRect, CFArray, CGWindowImageOption) -> Unmanaged<CGImage>?)? = {
+        guard let handle, let sym = dlsym(handle, "SLWindowListCreateImageFromArray") else { return nil }
+        return unsafeBitCast(sym, to: (@convention(c) (CGRect, CFArray, CGWindowImageOption) -> Unmanaged<CGImage>?).self)
+    }()
+
+    /// Captures the minimum rectangle enclosing the given windows. Returns nil
+    /// when SkyLight is unavailable or the capture fails.
+    static func capture(windowIDs: [CGWindowID]) -> CGImage? {
+        guard let createImageFromArray, !windowIDs.isEmpty else { return nil }
+        let array = NSArray(array: windowIDs.map { NSNumber(value: $0) }) as CFArray
+        return createImageFromArray(.null, array, [.boundsIgnoreFraming, .bestResolution])?.takeRetainedValue()
+    }
+}
+
 // MARK: - HiddenItemsPanelController
 
 /// Writes a diagnostic line to /tmp/NewHiddenBar-debug.log (app sandbox is off).
-/// Used to trace "nothing happens when clicking the collapse button".
 func hbDebugLog(_ message: String) {
     let line = "[NewHiddenBar \(Date())] \(message)\n"
     let url = URL(fileURLWithPath: "/tmp/NewHiddenBar-debug.log")
@@ -118,11 +147,37 @@ final class HiddenItemsPanelController: NSObject {
         }
 
         // Try to capture the off-screen windows directly — that way there is
-        // no flicker of items reappearing in the real menu bar. Only fall back
-        // to a temporary reveal if direct capture yields nothing.
-        let directCaptured = items.compactMap { item -> (HiddenMenuItem, NSImage)? in
-            guard let image = captureImage(windowID: item.windowID) else { return nil }
-            return (item, image)
+        // no flicker of items reappearing in the real menu bar. SkyLight's
+        // private API is the only one that can capture windows parked at
+        // large negative x; fall back to CGWindowListCreateImage, then to a
+        // temporary reveal if both fail.
+        var directCaptured: [(HiddenMenuItem, NSImage)] = []
+        if let composite = SkyLightCapture.capture(windowIDs: items.map { $0.windowID }) {
+            hbDebugLog("show() skylight composite \(composite.width)x\(composite.height)px for \(items.count) windows")
+            // The composite is the bounding box of all windows in CG coordinates
+            // (top-left origin). Crop each item out at its own frame.
+            let union = items.reduce(CGRect.null) { $0.union($1.offScreenFrame) }
+            let scale = CGFloat(composite.width) / max(union.width, 1)
+            for item in items {
+                let crop = CGRect(
+                    x: (item.offScreenFrame.minX - union.minX) * scale,
+                    y: (item.offScreenFrame.minY - union.minY) * scale,
+                    width: item.offScreenFrame.width * scale,
+                    height: item.offScreenFrame.height * scale
+                )
+                guard crop.minX >= 0, crop.minY >= 0,
+                      crop.maxX <= CGFloat(composite.width), crop.maxY <= CGFloat(composite.height),
+                      let cg = composite.cropping(to: crop)
+                else { continue }
+                let size = NSSize(width: item.offScreenFrame.width, height: item.offScreenFrame.height)
+                directCaptured.append((item, NSImage(cgImage: cg, size: size)))
+            }
+        }
+        if directCaptured.isEmpty {
+            directCaptured = items.compactMap { item -> (HiddenMenuItem, NSImage)? in
+                guard let image = captureImage(windowID: item.windowID) else { return nil }
+                return (item, image)
+            }
         }
         hbDebugLog("show() direct offscreen capture=\(directCaptured.count)/\(items.count)")
 
@@ -232,13 +287,18 @@ final class HiddenItemsPanelController: NSObject {
 
     /// Returns the most recent frame of the given item.
     static func currentFrame(for item: HiddenMenuItem) -> CGRect? {
+        currentFrame(forID: item.windowID)
+    }
+
+    /// Returns the current frame of the window with the given ID.
+    static func currentFrame(forID windowID: CGWindowID) -> CGRect? {
         guard let list = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else {
             return nil
         }
         for info in list {
             guard
                 let windowID = (info[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
-                windowID == item.windowID,
+                windowID == windowID,
                 let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
                 let frame = CGRect(dictionaryRepresentation: boundsDict)
             else { continue }
@@ -347,10 +407,15 @@ final class HiddenItemsPanelController: NSObject {
         }
     }
 
-    // MARK: - Click forwarding
+    // MARK: - Click forwarding (Ice/Thaw approach: drag one item out, click it, drag it back)
 
+    /// Forwarded click on a hidden item. Instead of expanding the whole
+    /// separator, the clicked item alone is dragged out of the overflow area
+    /// next to the collapse button, clicked there (so its menu opens beside
+    /// where the panel was), and dragged back after its menu closes. Falls
+    /// back to the legacy whole-section reveal if the move fails.
     private func handleClick(on item: HiddenMenuItem, button: CGMouseButton) {
-        hbDebugLog("handleClick() button=\(button == .right ? "right" : "left") windowID=\(item.windowID)")
+        hbDebugLog("handleClick() button=\(button == .right ? "right" : "left") windowID=\(item.windowID) pid=\(item.ownerPID)")
         dismiss()
 
         guard AXIsProcessTrusted() else {
@@ -364,9 +429,211 @@ final class HiddenItemsPanelController: NSObject {
             return
         }
 
-        // Temporarily reveal the hidden items so the click can land on the real item.
-        statusBarController?.tempExpandForClick()
+        guard let anchor = statusBarController?.collapseButtonFrame() else {
+            hbDebugLog("handleClick() no anchor frame; falling back to tempExpand")
+            legacyClick(on: item, button: button)
+            return
+        }
 
+        DispatchQueue.main.async { [weak self] in
+            self?.forwardClickThawStyle(on: item, button: button, anchor: anchor)
+        }
+    }
+
+    /// The Ice/Thaw flow: move → click → wait for the menu to close → move back.
+    private func forwardClickThawStyle(on item: HiddenMenuItem, button: CGMouseButton, anchor: CGRect) {
+        // Drop point: just left of the collapse button (inside the visible bar).
+        let isRTL = !Constant.isUsingLTRLanguage
+        let dropX = isRTL ? anchor.maxX + 2 : anchor.minX - 2
+        let dropPoint = CGPoint(x: dropX, y: anchor.midY)
+
+        hbDebugLog("thaw-flow move out: drop=\(dropPoint) itemFrame=\(item.offScreenFrame)")
+
+        guard let movedFrame = moveItemOut(item: item, to: dropPoint) else {
+            hbDebugLog("thaw-flow move-out FAILED; falling back to tempExpand click")
+            legacyClick(on: item, button: button)
+            return
+        }
+
+        hbDebugLog("thaw-flow moved to \(movedFrame); clicking")
+        let clickPoint = CGPoint(x: movedFrame.midX, y: movedFrame.midY)
+
+        // Snapshot windows before the click so we can find the menu it opens.
+        let before = Self.allWindowInfos()
+
+        Self.postMouseClick(at: clickPoint, button: button)
+
+        // Wait briefly for the app to open its menu, then wait for that menu
+        // to close before hiding the item again.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self else { return }
+            let after = Self.allWindowInfos()
+            let menuWindowID = Self.menuWindowID(newWindows: after, beforeIDs: Set(before.map { $0.windowID }), interfacePID: item.ownerPID)
+            if let menuWindowID {
+                hbDebugLog("thaw-flow menu window=\(menuWindowID); waiting for close")
+                self.waitForWindowToClose(windowID: menuWindowID, timeout: 30) { [weak self] in
+                    hbDebugLog("thaw-flow menu closed; moving item back")
+                    self?.moveItemBack(item: item, originalFrame: item.offScreenFrame)
+                }
+            } else {
+                hbDebugLog("thaw-flow no menu window detected; moving item back now")
+                self.moveItemBack(item: item, originalFrame: item.offScreenFrame)
+            }
+        }
+    }
+
+    /// Drags the item from the overflow area to `dropPoint` with synthetic
+    /// Cmd+drag events addressed to the window owner. Returns the item's new
+    /// frame on success, nil on failure.
+    private func moveItemOut(item: HiddenMenuItem, to dropPoint: CGPoint) -> CGRect? {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        guard let source else { return nil }
+
+        // Events carry the item's window ID so the window server routes them
+        // to the right item even though the cursor is far from it. The first
+        // attempt can act as a warm-up, so retry.
+        for attempt in 1...3 {
+            let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: dropPoint, mouseButton: .left)
+            let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: dropPoint, mouseButton: .left)
+            guard let down, let up else { return nil }
+            for e in [down, up] {
+                e.flags = .maskCommand
+                e.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: Int64(item.windowID))
+                e.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: Int64(item.windowID))
+            }
+            down.postToPid(item.ownerPID)
+            Thread.sleep(forTimeInterval: 0.05)
+            up.postToPid(item.ownerPID)
+
+            if let frame = waitForFrameChange(windowID: item.windowID, from: item.offScreenFrame, timeout: 0.4), frame.minX > 0 {
+                hbDebugLog("move-out attempt \(attempt) OK frame=\(frame)")
+                return frame
+            }
+        }
+        return nil
+    }
+
+    /// Drags the item back into the overflow area after its menu has closed.
+    private func moveItemBack(item: HiddenMenuItem, originalFrame: CGRect) {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        guard let source else { return }
+
+        let currentFrame = Self.currentFrame(for: item) ?? originalFrame
+        guard currentFrame.minX > 0 else {
+            hbDebugLog("move-back: item already off-screen at \(currentFrame)")
+            return
+        }
+
+        // Drop back at the original parked position. Press where the item
+        // currently is, release at the parked spot.
+        let pressPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
+        let dropPoint = CGPoint(x: originalFrame.midX, y: originalFrame.midY)
+
+        for attempt in 1...3 {
+            let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: pressPoint, mouseButton: .left)
+            let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: dropPoint, mouseButton: .left)
+            guard let down, let up else { return }
+            for e in [down, up] {
+                e.flags = .maskCommand
+                e.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: Int64(item.windowID))
+                e.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: Int64(item.windowID))
+            }
+            down.postToPid(item.ownerPID)
+            Thread.sleep(forTimeInterval: 0.05)
+            up.postToPid(item.ownerPID)
+
+            if let frame = waitForFrameChange(windowID: item.windowID, from: currentFrame, timeout: 0.4), frame.maxX <= 1 {
+                hbDebugLog("move-back attempt \(attempt) OK frame=\(frame)")
+                return
+            }
+        }
+        hbDebugLog("move-back FAILED after retries; item remains visible at \(Self.currentFrame(for: item).debugDescription)")
+    }
+
+    /// Polls until the item's window frame differs from `old`, up to `timeout` seconds.
+    private func waitForFrameChange(windowID: CGWindowID, from old: CGRect, timeout: TimeInterval) -> CGRect? {
+        let start = Date()
+        while Date().timeIntervalSince(start) < timeout {
+            Thread.sleep(forTimeInterval: 0.05)
+            if let frame = Self.currentFrame(forID: windowID), frame != old {
+                return frame
+            }
+        }
+        return Self.currentFrame(forID: windowID).flatMap { $0 != old ? $0 : nil }
+    }
+
+    // MARK: - Window helpers
+
+    private struct WindowInfoLite {
+        let windowID: CGWindowID
+        let ownerPID: pid_t
+        let layer: Int
+        let frame: CGRect
+    }
+
+    private static func allWindowInfos() -> [WindowInfoLite] {
+        guard let list = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else {
+            return []
+        }
+        return list.compactMap { info in
+            guard
+                let windowID = (info[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
+                let ownerPID = (info[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
+                let layer = (info[kCGWindowLayer as String] as? NSNumber)?.intValue,
+                let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
+                let frame = CGRect(dictionaryRepresentation: boundsDict)
+            else { return nil }
+            return WindowInfoLite(windowID: windowID, ownerPID: ownerPID, layer: layer, frame: frame)
+        }
+    }
+
+    /// Picks the window the click opened: a pop-up-menu-level window (or a
+    /// status/main-menu-level window taller than a menu bar item) belonging
+    /// to the item's owner or Control Center.
+    private static func menuWindowID(newWindows: [WindowInfoLite], beforeIDs: Set<CGWindowID>, interfacePID: pid_t) -> CGWindowID? {
+        let popUpLevel = Int(CGWindowLevelForKey(.popUpMenuWindow))
+        let statusLevel = Int(CGWindowLevelForKey(.statusWindow))
+        let mainMenuLevel = Int(CGWindowLevelForKey(.mainMenuWindow))
+        let controlCenterPID = NSWorkspace.shared.runningApplications
+            .first { $0.bundleIdentifier == "com.apple.controlcenter" }?
+            .processIdentifier
+
+        let candidates = newWindows.filter { !beforeIDs.contains($0.windowID) }
+        return candidates.first { win in
+            let pidMatches = win.ownerPID == interfacePID || win.ownerPID == controlCenterPID
+            guard pidMatches else { return false }
+            if win.layer == popUpLevel || win.layer == popUpLevel - 1 {
+                return true
+            }
+            if win.layer == statusLevel || win.layer == mainMenuLevel {
+                return win.frame.height > 40
+            }
+            return false
+        }?.windowID
+    }
+
+    /// Polls until the window disappears or the timeout elapses.
+    private func waitForWindowToClose(windowID: CGWindowID, timeout: TimeInterval, completion: @escaping () -> Void) {
+        let start = Date()
+        Timer.scheduledTimer(withTimeInterval: 0.25, repeats: false) { [weak self] _ in
+            guard let self else { completion(); return }
+            if Date().timeIntervalSince(start) > timeout {
+                completion()
+                return
+            }
+            let stillOpen = Self.allWindowInfos().contains { $0.windowID == windowID }
+            if stillOpen {
+                self.waitForWindowToClose(windowID: windowID, timeout: timeout, completion: completion)
+            } else {
+                completion()
+            }
+        }
+    }
+
+    // MARK: - Legacy fallback click (whole-section reveal)
+
+    private func legacyClick(on item: HiddenMenuItem, button: CGMouseButton) {
+        statusBarController?.tempExpandForClick()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
             guard let self else { return }
             guard let frame = Self.currentFrame(for: item) else {

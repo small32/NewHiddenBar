@@ -224,6 +224,14 @@ class StatusBarController {
     func tempExpandForClick() {
         btnSeparate.length = btnHiddenLength
     }
+
+    /// The on-screen frame of the collapse (chevron) button, in CG coordinates
+    /// (same space as CGWindowList bounds). Used as the anchor next to which a
+    /// hidden item is dragged out before being clicked.
+    func collapseButtonFrame() -> CGRect? {
+        guard let window = btnExpandCollapse.button?.window else { return nil }
+        return window.frame
+    }
     
     /// Re-hides the items after a synthesized click has been delivered.
     func restoreCollapse() {
