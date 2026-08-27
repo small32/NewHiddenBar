@@ -450,12 +450,9 @@ final class HiddenItemsMessageView: NSView {
 
         var actionButton: NSButton?
         if let buttonTitle {
-            let button = NSButton(title: buttonTitle, target: nil, action: nil)
-            button.bezelStyle = .rounded
-            button.controlSize = .small
-            button.target = self
-            button.action = #selector(openSettings)
-            actionButton = button
+            actionButton = NSButton(title: buttonTitle, target: nil, action: nil)
+            actionButton?.bezelStyle = .rounded
+            actionButton?.controlSize = .small
         }
 
         let contentWidth = maxWidth - padding * 2
@@ -470,9 +467,14 @@ final class HiddenItemsMessageView: NSView {
             height += 26 + gap
         }
 
-        super.init(frame: NSRect(origin: .zero, size: NSSize(width: maxWidth, height: height)))
-        panelSize = frame.size
+        panelSize = NSSize(width: maxWidth, height: height)
+        super.init(frame: NSRect(origin: .zero, size: panelSize))
         installPanelGlass()
+
+        if let actionButton {
+            actionButton.target = self
+            actionButton.action = #selector(openSettings)
+        }
 
         var y = padding
         titleLabel.frame = NSRect(x: padding, y: y, width: contentWidth, height: titleHeight)
