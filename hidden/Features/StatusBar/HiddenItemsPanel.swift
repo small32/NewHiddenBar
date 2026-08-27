@@ -264,8 +264,8 @@ final class HiddenItemsPanelController: NSObject {
 
     private func buildPanel(captured: [(HiddenMenuItem, NSImage)], anchorFrame: CGRect) {
         let content = HiddenItemsPanelContentView(items: captured)
-        content.onClickItem = { [weak self] item in
-            self?.handleClick(on: item)
+        content.onClickItem = { [weak self] item, button in
+            self?.handleClick(on: item, button: button)
         }
 
         let size = content.panelSize
@@ -280,6 +280,7 @@ final class HiddenItemsPanelController: NSObject {
         panel.orderFrontRegardless()
         self.panel = panel
         installDismissMonitor()
+        hbDebugLog("buildPanel() shown frame=\(panel.frame) size=\(size) items=\(captured.count)")
     }
 
     private func showMessagePanel(anchorFrame: CGRect, title: String, subtitle: String, buttonTitle: String?, buttonURL: URL?) {
@@ -296,6 +297,7 @@ final class HiddenItemsPanelController: NSObject {
         panel.orderFrontRegardless()
         self.panel = panel
         installDismissMonitor()
+        hbDebugLog("showMessagePanel() \(title) frame=\(panel.frame)")
     }
 
     private func configure(panel: NSPanel, contentView: NSView) {
@@ -326,13 +328,15 @@ final class HiddenItemsPanelController: NSObject {
             let location = NSEvent.mouseLocation
             if let panel = self.panel, panel.frame.contains(location) { return }
             if self.anchorFrame.contains(location) { return }
+            hbDebugLog("dismiss-by-global-click at=\(location) panel=\(String(describing: self.panel?.frame)) anchor=\(self.anchorFrame)")
             self.dismiss()
         }
     }
 
     // MARK: - Click forwarding
 
-    private func handleClick(on item: HiddenMenuItem) {
+    private func handleClick(on item: HiddenMenuItem, button: CGMouseButton) {
+        hbDebugLog("handleClick() button=\(button == .right ? "right" : "left") windowID=\(item.windowID)")
         dismiss()
 
         guard AXIsProcessTrusted() else {
@@ -355,17 +359,18 @@ final class HiddenItemsPanelController: NSObject {
                 self.statusBarController?.restoreCollapse()
                 return
             }
-            Self.postMouseClick(at: CGPoint(x: frame.midX, y: frame.midY))
+            Self.postMouseClick(at: CGPoint(x: frame.midX, y: frame.midY), button: button)
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                 self.statusBarController?.restoreCollapse()
             }
         }
     }
 
-    private static func postMouseClick(at point: CGPoint) {
+    private static func postMouseClick(at point: CGPoint, button: CGMouseButton) {
         guard let source = CGEventSource(stateID: .combinedSessionState) else { return }
-        let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: point, mouseButton: .left)
-        let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: point, mouseButton: .left)
+        let isRight = button == .right
+        let down = CGEvent(mouseEventSource: source, mouseType: isRight ? .rightMouseDown : .leftMouseDown, mouseCursorPosition: point, mouseButton: button)
+        let up = CGEvent(mouseEventSource: source, mouseType: isRight ? .rightMouseUp : .leftMouseUp, mouseCursorPosition: point, mouseButton: button)
         down?.post(tap: .cghidEventTap)
         up?.post(tap: .cghidEventTap)
     }
@@ -374,7 +379,7 @@ final class HiddenItemsPanelController: NSObject {
 // MARK: - HiddenItemsPanelContentView
 
 final class HiddenItemsPanelContentView: NSView {
-    var onClickItem: ((HiddenMenuItem) -> Void)?
+    var onClickItem: ((HiddenMenuItem, CGMouseButton) -> Void)?
 
     private let buttons: [HiddenItemButton]
     private let padding: CGFloat = 6
@@ -396,8 +401,8 @@ final class HiddenItemsPanelContentView: NSView {
         installPanelGlass()
 
         for button in buttons {
-            button.onClick = { [weak self] item in
-                self?.onClickItem?(item)
+            button.onClick = { [weak self] item, mouseButton in
+                self?.onClickItem?(item, mouseButton)
             }
             addSubview(button)
         }
@@ -424,7 +429,7 @@ final class HiddenItemsPanelContentView: NSView {
 
 final class HiddenItemButton: NSButton {
     let item: HiddenMenuItem
-    var onClick: ((HiddenMenuItem) -> Void)?
+    var onClick: ((HiddenMenuItem, CGMouseButton) -> Void)?
     private var trackingAreaRef: NSTrackingArea?
 
     init(item: HiddenMenuItem, image: NSImage) {
@@ -455,7 +460,11 @@ final class HiddenItemButton: NSButton {
     override var isFlipped: Bool { true }
 
     @objc private func buttonClicked() {
-        onClick?(item)
+        onClick?(item, .left)
+    }
+
+    override func rightMouseUp(with event: NSEvent) {
+        onClick?(item, .right)
     }
 
     override func updateTrackingAreas() {
