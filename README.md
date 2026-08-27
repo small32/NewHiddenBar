@@ -1,6 +1,8 @@
+<!--
 <p align="center">
 	<img width="200" height="200" src="img/icon_512%402x.png">
 </p>
+-->
 <p align="center">
 	<a href="https://github.com/small32/NewHiddenBar/releases/latest">
  		<img src="https://img.shields.io/badge/download-latest-brightgreen.svg" alt="download">
@@ -16,10 +18,12 @@
 
 The upstream project has been inactive for an extended period. This fork picks up where it left off — merging the most-requested community fixes, resolving the memory leak affecting macOS Sequoia and Tahoe, repairing the Preferences window on modern macOS, and keeping the app compatible with current macOS releases.
 
+<!--
 <p align="center">
 	<img width="420" src="img/preferences-general.png" alt="General preferences with tutorial and settings">
 	<img width="420" src="img/preferences-about.png" alt="About screen">
 </p>
+-->
 
 ## What's new in 2.0
 
