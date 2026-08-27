@@ -161,40 +161,51 @@ final class HiddenItemsPanelController: NSObject {
         }
         let myPID = ProcessInfo.processInfo.processIdentifier
         let visible = visibleScreenBounds
-        var droppedCount = 0
+        let targetLayer = Int(kCGStatusWindowLevel)
 
-        let result = list.compactMap { info -> HiddenMenuItem? in
+        var layer25Count = 0
+        var offscreen25Count = 0
+        var nonLayerLayers = Set<Int>()
+        var result: [HiddenMenuItem] = []
+
+        for info in list {
+            guard
+                let ownerPID = (info[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
+                let layer = (info[kCGWindowLayer as String] as? NSNumber)?.intValue
+            else { continue }
+
+            if layer != targetLayer {
+                nonLayerLayers.insert(layer)
+                continue
+            }
+            layer25Count += 1
+
             guard
                 let windowID = (info[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
-                let ownerPID = (info[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value,
-                let layer = (info[kCGWindowLayer as String] as? NSNumber)?.intValue,
-                layer == Int(kCGStatusWindowLevel),
                 ownerPID != myPID,
                 let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
-                let frame = CGRect(dictionaryRepresentation: boundsDict),
-                !frame.intersects(visible),
-                frame.width >= 8,
-                frame.height >= 8
-            else {
-                droppedCount += 1
-                return nil
+                let frame = CGRect(dictionaryRepresentation: boundsDict)
+            else { continue }
+
+            if !frame.intersects(visible) {
+                offscreen25Count += 1
+                if frame.width >= 8, frame.height >= 8 {
+                    let ownerName = info[kCGWindowOwnerName as String] as? String
+                    if ownerName == "Window Server" { continue }
+                    result.append(HiddenMenuItem(
+                        windowID: windowID,
+                        ownerPID: ownerPID,
+                        ownerName: ownerName,
+                        title: info[kCGWindowName as String] as? String,
+                        offScreenFrame: frame
+                    ))
+                }
             }
-
-            let ownerName = info[kCGWindowOwnerName as String] as? String
-            if ownerName == "Window Server" { return nil }
-
-            return HiddenMenuItem(
-                windowID: windowID,
-                ownerPID: ownerPID,
-                ownerName: ownerName,
-                title: info[kCGWindowName as String] as? String,
-                offScreenFrame: frame
-            )
         }
-        .sorted { $0.offScreenFrame.minX < $1.offScreenFrame.minX }
 
-        hbDebugLog("hiddenMenuItems() windows=\(list.count) kept=\(result.count) dropped=\(droppedCount)")
-        return result
+        let sampleLayers = nonLayerLayers.sorted().prefix(10).map(String.init).joined(separator: ",")
+        hbDebugLog("hiddenMenuItems() total=\(list.count) targetLayer=\(targetLayer) layer25=\(layer25Count) offscreen25=\(offscreen25Count) kept=\(result.count) otherLayers=[\(sampleLayers)]")
+        return result.sorted { $0.offScreenFrame.minX < $1.offScreenFrame.minX }
     }
 
     /// Returns the most recent frame of the given item.
