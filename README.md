@@ -16,7 +16,7 @@
 
 **NewHiddenBar** is a maintained continuation of the original [Hidden Bar](https://github.com/dwarvesf/hidden) by [Dwarves Foundation](https://github.com/dwarvesf), an ultra-light macOS utility that hides menu bar items to give your Mac a cleaner look.
 
-The upstream project has been inactive for an extended period. This fork picks up where it left off — merging the most-requested community fixes, resolving the memory leak affecting macOS Sequoia and Tahoe, repairing the Preferences window on modern macOS, and keeping the app compatible with current macOS releases.
+The upstream project has been inactive for an extended period. This project is forked from [Hidden Bar Revived](https://github.com/sdenike/hidden-revived) by [Shelby DeNike](https://github.com/sdenike) and picks up where it left off — merging the most-requested community fixes, resolving the memory leak affecting macOS Sequoia and Tahoe, repairing the Preferences window on modern macOS, and keeping the app compatible with current macOS releases.
 
 <!--
 <p align="center">
