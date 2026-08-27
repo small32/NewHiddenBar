@@ -32,7 +32,7 @@ final class HiddenItemsPanelController: NSObject {
     private weak var statusBarController: StatusBarController?
 
     private var panel: NSPanel?
-    private var eventMonitor: EventMonitor?
+    private var eventMonitor: Any?
     private var anchorFrame = CGRect.zero
 
     var isVisible: Bool { panel?.isVisible ?? false }
@@ -53,7 +53,9 @@ final class HiddenItemsPanelController: NSObject {
     }
 
     func dismiss() {
-        eventMonitor?.stop()
+        if let eventMonitor {
+            NSEvent.removeMonitor(eventMonitor)
+        }
         eventMonitor = nil
         panel?.orderOut(nil)
         panel = nil
@@ -264,15 +266,13 @@ final class HiddenItemsPanelController: NSObject {
     }
 
     private func installDismissMonitor() {
-        let monitor = EventMonitor(mask: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
+        eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
             guard let self else { return }
             let location = NSEvent.mouseLocation
             if let panel = self.panel, panel.frame.contains(location) { return }
             if self.anchorFrame.contains(location) { return }
             self.dismiss()
         }
-        monitor.start()
-        eventMonitor = monitor
     }
 
     // MARK: - Click forwarding
