@@ -25,15 +25,13 @@ The upstream project has been inactive for an extended period. This project is f
 </p>
 -->
 
-## What's new in 2.0
+## What's new in 3.0
 
-- **Memory leak fix.** Addresses the runaway leak that was growing Hidden Bar to multiple GB on macOS Sequoia and Tahoe. Adapted from community PRs #335 and #346 with additional refinements.
-- **Ultrawide and multi-monitor support.** Collapse width is now computed from the widest connected display (up to macOS's 10,000 pt maximum) and collapsed state is preserved across display connect/disconnect events.
-- **Preferences window rebuilt for macOS 26 Tahoe.** Compact titlebar with a centered General/About pill, no more transparent-titlebar bleed-through, no more stray "Custom View" labels.
-- **Additional localizations.** Italian, Ukrainian, and Turkish added to the existing ten languages.
-- **Minimum macOS raised to 13 (Ventura).** Aligns with Apple's currently-supported macOS releases as of 2026 and lets the codebase drop a stack of `#available` checks, the legacy upstream PNG icon assets, and several compatibility branches that targeted macOS 10.13 → 12. A migration to `SMAppService` for launch-at-login is planned next, which will also retire the LauncherApplication helper target.
-- **Rebranded with full attribution.** App name is now "NewHiddenBar" and the About screen credits both Dwarves Foundation and this fork's maintainer.
-- **"Enable always hidden section" applies immediately** (2.1.1). It previously needed an app restart before the second separator would appear.
+- **Hidden items now live in a popup panel — not the menu bar.** The headline change in this release: clicking the collapse arrow no longer pushes hidden icons back into the menu bar. Instead, a floating popup (in the style of [Ice](https://github.com/jordanbaird/Ice)) slides out below the menu bar, showing a snapshot of every hidden icon. Your menu bar stays clean and fixed — hidden icons never occupy it again. Click any icon in the popup to activate the real menu bar item; its menu opens exactly as if you had clicked the icon directly.
+- **Built on the 2.x groundwork**, which this release inherits:
+  - **Memory leak fix** for the runaway growth that ballooned the app to multiple GB on macOS Sequoia and Tahoe.
+  - **Ultrawide and multi-monitor support** — collapse width is computed from the widest connected display, and the collapsed state survives display connect/disconnect events.
+  - **Preferences window rebuilt for macOS 26 Tahoe**, plus 13 localizations and a macOS 13+ minimum.
 
 See [CHANGELOG.md](CHANGELOG.md) for full release notes.
 
