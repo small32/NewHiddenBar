@@ -136,18 +136,16 @@ class StatusBarController {
     }
     
     @objc func btnExpandCollapsePressed(sender: NSStatusBarButton) {
-        hbDebugLog("btnExpandCollapsePressed currentEvent=\(String(describing: NSApp.currentEvent?.type))")
-        if let event = NSApp.currentEvent {
-            
-            let isOptionKeyPressed = event.modifierFlags.contains(NSEvent.ModifierFlags.option)
-            
-            if event.type == NSEvent.EventType.leftMouseUp && !isOptionKeyPressed{
-                self.toggleHiddenPanel()
-            } else {
-                self.showHideSeparatorsAndAlwayHideArea()
-            }
+        // NSStatusBarButton sends the action on mouseUp, but on modern macOS the
+        // currentEvent type is not reliably .leftMouseUp. Only branch on the
+        // Option modifier: a plain left-click always toggles the hidden panel;
+        // Option+click manages the separators.
+        let isOptionKeyPressed = (NSApp.currentEvent?.modifierFlags.contains(NSEvent.ModifierFlags.option) ?? false)
+        hbDebugLog("btnExpandCollapsePressed isOption=\(isOptionKeyPressed) type=\(String(describing: NSApp.currentEvent?.type))")
+        if isOptionKeyPressed {
+            self.showHideSeparatorsAndAlwayHideArea()
         } else {
-            hbDebugLog("btnExpandCollapsePressed currentEvent is nil")
+            self.toggleHiddenPanel()
         }
     }
     
