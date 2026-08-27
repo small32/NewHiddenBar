@@ -149,13 +149,27 @@ class StatusBarController {
         }
     }
     
+    /// Debounces the panel toggle. On macOS 26 one click can fire the button
+    /// action twice (mouseUp + a second delivery), which would build and destroy
+    /// the panel in quick succession — the "flashes and vanishes" symptom.
+    private var isTogglingPanel = false
+
     private func toggleHiddenPanel() {
+        guard !isTogglingPanel else {
+            hbDebugLog("toggleHiddenPanel debounced (double-fire)")
+            return
+        }
+        isTogglingPanel = true
         guard let frame = btnExpandCollapse.button?.window?.frame else {
             hbDebugLog("toggleHiddenPanel button?.window is nil")
+            isTogglingPanel = false
             return
         }
         hbDebugLog("toggleHiddenPanel frame=\(frame) isCollapsed=\(isCollapsed)")
         hiddenItemsPanelController.toggle(anchorFrame: frame)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            self?.isTogglingPanel = false
+        }
     }
     
     func showHideSeparatorsAndAlwayHideArea() {
