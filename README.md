@@ -27,7 +27,7 @@ The upstream project has been inactive for an extended period. This project is f
 
 ## What's new in 3.0
 
-- **Hidden items now live in a popup panel — not the menu bar.** The headline change in this release: clicking the collapse arrow no longer pushes hidden icons back into the menu bar. Instead, a floating popup (in the style of [Ice](https://github.com/jordanbaird/Ice)) slides out below the menu bar, showing a snapshot of every hidden icon. Your menu bar stays clean and fixed — hidden icons never occupy it again. Click any icon in the popup to activate the real menu bar item; its menu opens exactly as if you had clicked the icon directly.
+- **Hidden items now live in a popup panel — not the menu bar.** The headline change in this release: clicking the collapse arrow no longer pushes hidden icons back into the menu bar. Instead, a floating popup slides out below the menu bar, showing a snapshot of every hidden icon. Your menu bar stays clean and fixed — hidden icons never occupy it again. Click any icon in the popup to activate the real menu bar item; its menu opens exactly as if you had clicked the icon directly.
 - **Built on the 2.x groundwork**, which this release inherits:
   - **Memory leak fix** for the runaway growth that ballooned the app to multiple GB on macOS Sequoia and Tahoe.
   - **Ultrawide and multi-monitor support** — collapse width is computed from the widest connected display, and the collapsed state survives display connect/disconnect events.
