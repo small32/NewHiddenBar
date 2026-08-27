@@ -117,12 +117,26 @@ final class HiddenItemsPanelController: NSObject {
             return
         }
 
-        // Temporarily reveal the hidden items so their windows can be captured,
-        // then hide them again before showing the panel.
-        statusBarController?.tempExpandForClick()
-        hbDebugLog("show() tempExpandForClick called")
+        // Try to capture the off-screen windows directly — that way there is
+        // no flicker of items reappearing in the real menu bar. Only fall back
+        // to a temporary reveal if direct capture yields nothing.
+        let directCaptured = items.compactMap { item -> (HiddenMenuItem, NSImage)? in
+            guard let image = captureImage(windowID: item.windowID) else { return nil }
+            return (item, image)
+        }
+        hbDebugLog("show() direct offscreen capture=\(directCaptured.count)/\(items.count)")
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
+        if !directCaptured.isEmpty {
+            buildPanel(captured: directCaptured, anchorFrame: anchorFrame)
+            return
+        }
+
+        // Fallback: briefly reveal the hidden items so their windows can be seen,
+        // capture them, then hide again before showing the panel.
+        statusBarController?.tempExpandForClick()
+        hbDebugLog("show() fallback tempExpandForClick called")
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             guard let self else { return }
 
             var captured: [(HiddenMenuItem, NSImage)] = []
@@ -135,7 +149,7 @@ final class HiddenItemsPanelController: NSObject {
             }
 
             self.statusBarController?.restoreCollapse()
-            hbDebugLog("show() captured \(captured.count)/\(items.count), restoreCollapse called")
+            hbDebugLog("show() fallback captured \(captured.count)/\(items.count), restoreCollapse called")
 
             guard !captured.isEmpty else {
                 self.showMessagePanel(
