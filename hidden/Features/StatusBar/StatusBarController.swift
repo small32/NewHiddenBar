@@ -226,11 +226,21 @@ class StatusBarController {
     }
 
     /// The on-screen frame of the collapse (chevron) button, in CG coordinates
-    /// (same space as CGWindowList bounds). Used as the anchor next to which a
-    /// hidden item is dragged out before being clicked.
+    /// (origin top-left, the same space as CGEvent and CGWindowList bounds).
+    /// Used as the anchor next to which a hidden item is dragged out before
+    /// being clicked.
     func collapseButtonFrame() -> CGRect? {
         guard let window = btnExpandCollapse.button?.window else { return nil }
-        return window.frame
+        let screen = window.screen ?? NSScreen.main
+        guard let screen else { return nil }
+        // AppKit (bottom-left origin) → CG (top-left origin)
+        let appKitFrame = window.frame
+        return CGRect(
+            x: appKitFrame.minX,
+            y: screen.frame.maxY - appKitFrame.maxY,
+            width: appKitFrame.width,
+            height: appKitFrame.height
+        )
     }
     
     /// Re-hides the items after a synthesized click has been delivered.

@@ -48,10 +48,27 @@ enum SkyLightCapture {
 
     /// Captures the minimum rectangle enclosing the given windows. Returns nil
     /// when SkyLight is unavailable or the capture fails.
+    ///
+    /// The array elements must be the window IDs as raw bit patterns (the
+    /// same representation the CGWindowList APIs use). Wrapping them in
+    /// NSNumber makes SkyLight return nil.
     static func capture(windowIDs: [CGWindowID]) -> CGImage? {
         guard let createImageFromArray, !windowIDs.isEmpty else { return nil }
-        let array = NSArray(array: windowIDs.map { NSNumber(value: $0) }) as CFArray
+        var pointers: [UnsafeRawPointer?] = windowIDs.compactMap { UnsafeRawPointer(bitPattern: UInt($0)) }
+        guard !pointers.isEmpty else { return nil }
+        var callbacks = CFArrayCallBacks(version: 0, retain: nil, release: nil, copyDescription: nil, equal: nil)
+        guard let array = CFArrayCreate(nil, &pointers, pointers.count, &callbacks) else { return nil }
         return createImageFromArray(.null, array, [.boundsIgnoreFraming, .bestResolution])?.takeRetainedValue()
+    }
+}
+
+// MARK: - CGEvent helpers
+
+private extension CGEvent {
+    /// Stamps the target process on the event so the window server routes it
+    /// to the item's owning app (Ice/Thaw's setTargetPID).
+    func setTargetPID(_ pid: pid_t) {
+        setIntegerValueField(.eventTargetUnixProcessID, value: Int64(pid))
     }
 }
 
@@ -291,14 +308,14 @@ final class HiddenItemsPanelController: NSObject {
     }
 
     /// Returns the current frame of the window with the given ID.
-    static func currentFrame(forID windowID: CGWindowID) -> CGRect? {
+    static func currentFrame(forID targetID: CGWindowID) -> CGRect? {
         guard let list = CGWindowListCopyWindowInfo(.optionAll, kCGNullWindowID) as? [[String: Any]] else {
             return nil
         }
         for info in list {
             guard
                 let windowID = (info[kCGWindowNumber as String] as? NSNumber)?.uint32Value,
-                windowID == windowID,
+                windowID == targetID,
                 let boundsDict = info[kCGWindowBounds as String] as? NSDictionary,
                 let frame = CGRect(dictionaryRepresentation: boundsDict)
             else { continue }
@@ -482,34 +499,58 @@ final class HiddenItemsPanelController: NSObject {
         }
     }
 
+    /// Raw CGEventField (0x33) that carries the target window ID on move
+    /// events. Not part of the public API; Ice/Thaw A/B tested moves with and
+    /// without it and found them more reliable with it stamped.
+    private static let rawWindowIDField = CGEventField(rawValue: 0x33)!
+
+    /// Builds a Cmd+drag event pair addressed to `ownerPID` that drags the
+    /// item with `windowID` from `pressPoint` to `releasePoint`.
+    private static func makeDragEvents(source: CGEventSource, windowID: CGWindowID, ownerPID: pid_t, pressPoint: CGPoint, releasePoint: CGPoint) -> (down: CGEvent, up: CGEvent)? {
+        guard
+            let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: pressPoint, mouseButton: .left),
+            let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: releasePoint, mouseButton: .left)
+        else { return nil }
+        for e in [down, up] {
+            e.flags = .maskCommand
+            e.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: Int64(windowID))
+            e.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: Int64(windowID))
+            e.setIntegerValueField(rawWindowIDField, value: Int64(windowID))
+        }
+        down.setTargetPID(ownerPID)
+        up.setTargetPID(ownerPID)
+        return (down, up)
+    }
+
     /// Drags the item from the overflow area to `dropPoint` with synthetic
     /// Cmd+drag events addressed to the window owner. Returns the item's new
     /// frame on success, nil on failure.
+    ///
+    /// The receiving app's tracking needs the cursor at the press location
+    /// (Ice/Thaw found this load-bearing), so the cursor is warped there for
+    /// the duration of the drag and restored afterwards.
     private func moveItemOut(item: HiddenMenuItem, to dropPoint: CGPoint) -> CGRect? {
         let source = CGEventSource(stateID: .combinedSessionState)
         guard let source else { return nil }
+        guard let events = Self.makeDragEvents(source: source, windowID: item.windowID, ownerPID: item.ownerPID, pressPoint: dropPoint, releasePoint: dropPoint) else { return nil }
 
-        // Events carry the item's window ID so the window server routes them
-        // to the right item even though the cursor is far from it. The first
-        // attempt can act as a warm-up, so retry.
+        let savedCursor = CGEvent(source: nil)?.location
+
+        // The first attempt can act as a warm-up, so retry.
         for attempt in 1...3 {
-            let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: dropPoint, mouseButton: .left)
-            let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: dropPoint, mouseButton: .left)
-            guard let down, let up else { return nil }
-            for e in [down, up] {
-                e.flags = .maskCommand
-                e.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: Int64(item.windowID))
-                e.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: Int64(item.windowID))
-            }
-            down.postToPid(item.ownerPID)
+            CGWarpMouseCursorPosition(dropPoint)
+            Thread.sleep(forTimeInterval: 0.02)
+            events.down.postToPid(item.ownerPID)
             Thread.sleep(forTimeInterval: 0.05)
-            up.postToPid(item.ownerPID)
+            events.up.postToPid(item.ownerPID)
 
             if let frame = waitForFrameChange(windowID: item.windowID, from: item.offScreenFrame, timeout: 0.4), frame.minX > 0 {
                 hbDebugLog("move-out attempt \(attempt) OK frame=\(frame)")
+                if let savedCursor { CGWarpMouseCursorPosition(savedCursor) }
                 return frame
             }
         }
+        if let savedCursor { CGWarpMouseCursorPosition(savedCursor) }
         return nil
     }
 
@@ -518,36 +559,37 @@ final class HiddenItemsPanelController: NSObject {
         let source = CGEventSource(stateID: .combinedSessionState)
         guard let source else { return }
 
-        let currentFrame = Self.currentFrame(for: item) ?? originalFrame
+        let currentFrame = Self.currentFrame(forID: item.windowID) ?? originalFrame
         guard currentFrame.minX > 0 else {
             hbDebugLog("move-back: item already off-screen at \(currentFrame)")
             return
         }
 
-        // Drop back at the original parked position. Press where the item
-        // currently is, release at the parked spot.
+        // Press where the item currently is (on-screen), release at the
+        // original parked position (off-screen). The cursor is warped to the
+        // press point only; warping to the off-screen release point would
+        // clamp to the display edge under the Apple menu.
         let pressPoint = CGPoint(x: currentFrame.midX, y: currentFrame.midY)
         let dropPoint = CGPoint(x: originalFrame.midX, y: originalFrame.midY)
+        guard let events = Self.makeDragEvents(source: source, windowID: item.windowID, ownerPID: item.ownerPID, pressPoint: pressPoint, releasePoint: dropPoint) else { return }
+
+        let savedCursor = CGEvent(source: nil)?.location
 
         for attempt in 1...3 {
-            let down = CGEvent(mouseEventSource: source, mouseType: .leftMouseDown, mouseCursorPosition: pressPoint, mouseButton: .left)
-            let up = CGEvent(mouseEventSource: source, mouseType: .leftMouseUp, mouseCursorPosition: dropPoint, mouseButton: .left)
-            guard let down, let up else { return }
-            for e in [down, up] {
-                e.flags = .maskCommand
-                e.setIntegerValueField(.mouseEventWindowUnderMousePointer, value: Int64(item.windowID))
-                e.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: Int64(item.windowID))
-            }
-            down.postToPid(item.ownerPID)
+            CGWarpMouseCursorPosition(pressPoint)
+            Thread.sleep(forTimeInterval: 0.02)
+            events.down.postToPid(item.ownerPID)
             Thread.sleep(forTimeInterval: 0.05)
-            up.postToPid(item.ownerPID)
+            events.up.postToPid(item.ownerPID)
 
             if let frame = waitForFrameChange(windowID: item.windowID, from: currentFrame, timeout: 0.4), frame.maxX <= 1 {
                 hbDebugLog("move-back attempt \(attempt) OK frame=\(frame)")
+                if let savedCursor { CGWarpMouseCursorPosition(savedCursor) }
                 return
             }
         }
-        hbDebugLog("move-back FAILED after retries; item remains visible at \(Self.currentFrame(for: item).debugDescription)")
+        if let savedCursor { CGWarpMouseCursorPosition(savedCursor) }
+        hbDebugLog("move-back FAILED after retries; item remains visible at \(Self.currentFrame(forID: item.windowID).debugDescription)")
     }
 
     /// Polls until the item's window frame differs from `old`, up to `timeout` seconds.
