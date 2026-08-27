@@ -1,6 +1,6 @@
 //
 //  HiddenItemsPanel.swift
-//  Hidden Bar Revived
+//  NewHiddenBar
 //
 //  Ice-style popup panel. When the user clicks the collapse button, the hidden
 //  menu bar items stay off-screen; this panel renders a snapshot of each hidden

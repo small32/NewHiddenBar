@@ -1,6 +1,6 @@
 //
 //  NSView+Glass.swift
-//  Hidden Bar Revived
+//  NewHiddenBar
 //
 //  Helpers for installing an `NSVisualEffectView` backdrop behind a
 //  storyboard-loaded root view so that the window's Liquid Glass material

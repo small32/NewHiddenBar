@@ -1,9 +1,9 @@
 //
 //  AboutViewController.swift
-//  Hidden Bar Revived
+//  NewHiddenBar
 //
 //  Originally by phucld on 12/19/19 for Hidden Bar.
-//  Updated to modernize the About screen for Hidden Bar Revived.
+//  Updated to modernize the About screen for NewHiddenBar.
 //
 
 import Cocoa
@@ -48,19 +48,19 @@ class AboutViewController: NSViewController {
         let specs: [LinkSpec] = [
             LinkSpec(matchPrefix: "https://dwarves.foundation",
                      title: "View on GitHub",
-                     href: "https://github.com/sdenike/hidden-revived",
+                     href: "https://github.com/small32/NewHiddenBar",
                      symbolName: "chevron.left.forwardslash.chevron.right"),
             LinkSpec(matchPrefix: "https://twitter.com",
                      title: "Download latest release",
-                     href: "https://github.com/sdenike/hidden-revived/releases/latest",
+                     href: "https://github.com/small32/NewHiddenBar/releases/latest",
                      symbolName: "arrow.down.circle.fill"),
-            LinkSpec(matchPrefix: "https://github.com/sdenike",
+            LinkSpec(matchPrefix: "https://github.com/small32",
                      title: "Report an issue",
-                     href: "https://github.com/sdenike/hidden-revived/issues/new",
+                     href: "https://github.com/small32/NewHiddenBar/issues/new",
                      symbolName: "exclamationmark.bubble.fill"),
             LinkSpec(matchPrefix: "mailto:",
                      title: "View MIT License",
-                     href: "https://github.com/sdenike/hidden-revived/blob/main/LICENSE",
+                     href: "https://github.com/small32/NewHiddenBar/blob/main/LICENSE",
                      symbolName: "doc.text.fill"),
         ]
 

@@ -1,16 +1,16 @@
-# Releasing Hidden Bar Revived
+# Releasing NewHiddenBar
 
-This runbook covers cutting a signed + notarized release and updating the
-Homebrew tap. One-time setup is at the bottom.
+This runbook covers cutting a signed + notarized release. One-time setup is
+at the bottom.
 
 ## SDK and Xcode requirements
 
 As of **2026-04-28**, Apple requires App Store Connect submissions to be
 built with **Xcode 26+ using the macOS 26 SDK**. This requirement does not
-apply to Developer ID notarized distribution (our current channel via
-Homebrew), but we enforce it in both `scripts/release.sh` and the
-`Release` GitHub Actions workflow so every artifact is ready to submit
-to the App Store on day one if we choose to.
+apply to Developer ID notarized distribution (our current channel), but we
+enforce it in both `scripts/release.sh` and the `Release` GitHub Actions
+workflow so every artifact is ready to submit to the App Store on day one
+if we choose to.
 
 `SDKROOT = macosx` in `Hidden Bar.xcodeproj` auto-selects the latest
 installed macOS SDK, so on a Mac with Xcode 26+ installed there's nothing
@@ -28,24 +28,13 @@ manual to do beyond keeping Xcode current. The CI workflow runs on
    git push origin v2.0.x
    ```
    The `Release` GitHub Actions workflow picks up the tag, builds, signs,
-   notarizes, staples, and publishes `HiddenBarRevived-2.0.x.zip` to the
+   notarizes, staples, and publishes `NewHiddenBar-2.0.x.zip` to the
    GitHub release.
-3. **Grab the sha256** from the workflow run's summary (section "Cask
-   values"), or compute it locally from the downloaded asset:
+3. **Grab the sha256** from the workflow run's summary, or compute it locally
+   from the downloaded asset to verify the download:
    ```bash
-   shasum -a 256 HiddenBarRevived-2.0.x.zip
+   shasum -a 256 NewHiddenBar-2.0.x.zip
    ```
-4. **The Homebrew cask updates itself.** The release workflow rewrites `version`
-   and `sha256` in `Casks/hidden-revived.rb` in
-   [`sdenike/homebrew-tap`](https://github.com/sdenike/homebrew-tap) and commits
-   there, so there is nothing to edit by hand. Users pick it up on their next
-   `brew upgrade --cask hidden-revived`.
-
-   This needs a `HOMEBREW_TAP_TOKEN` secret on this repository — a PAT with
-   `contents: write` on `sdenike/homebrew-tap`. A workflow's built-in
-   `GITHUB_TOKEN` is scoped to its own repository and cannot push to the tap. If
-   the secret is missing the step warns and succeeds, so the release itself is
-   never blocked by it.
 
 ## Local-only signing (without GitHub Actions)
 
@@ -55,7 +44,7 @@ Run the same pipeline that CI runs, from your own machine:
 ./scripts/release.sh
 ```
 
-Outputs `dist/HiddenBarRevived-<version>.zip` and a sibling `.sha256`. Pass
+Outputs `dist/NewHiddenBar-<version>.zip` and a sibling `.sha256`. Pass
 `SKIP_NOTARIZE=1` to skip Apple notarization (for smoke-testing the signing
 chain locally); pass `DRY_RUN=1` to skip notarization AND stapling.
 
@@ -96,7 +85,7 @@ https://appleid.apple.com → Sign-In and Security → App-Specific Passwords.
 ### GitHub Actions secrets (for the `Release` workflow)
 
 Add these to
-`github.com/sdenike/hidden-revived/settings/secrets/actions`:
+`github.com/small32/NewHiddenBar/settings/secrets/actions`:
 
 | Secret | Value |
 |---|---|

@@ -31,7 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             var components = path.pathComponents
             components.removeLast(3)
             components.append("MacOS")
-            let appName = "Hidden Bar Revived"
+            let appName = "NewHiddenBar"
             components.append(appName) //main app name
             let newPath = NSString.path(withComponents: components)
             NSWorkspace.shared.launchApplication(newPath)

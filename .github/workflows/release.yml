@@ -1,8 +1,8 @@
 name: Release
 
-# Build, sign, notarize, and publish Hidden Bar Revived when a `v*` tag is
+# Build, sign, notarize, and publish NewHiddenBar when a `v*` tag is
 # pushed (e.g. `v2.0.6`). Uploads the signed + notarized zip as a release
-# asset and prints the sha256 for the Homebrew cask.
+# asset and prints the sha256 for the release asset.
 #
 # Repository secrets required (Settings → Secrets and variables → Actions):
 #
@@ -40,7 +40,7 @@ jobs:
     env:
       SIGNING_IDENTITY: "Developer ID Application: Shelby Denike (485WH9DHS4)"
       NOTARY_PROFILE: "HiddenBarNotary"
-      APP_NAME: "Hidden Bar Revived"
+      APP_NAME: "NewHiddenBar"
       SCHEME: "Hidden Bar"
       PROJECT: "Hidden Bar.xcodeproj"
       MIN_XCODE_MAJOR: "26"
@@ -125,7 +125,7 @@ jobs:
           REF_NAME: ${{ github.ref_name }}
         run: |
           TAG="${TAG_INPUT:-$REF_NAME}"
-          ARTIFACT="dist/HiddenBarRevived-$VERSION.zip"
+          ARTIFACT="dist/NewHiddenBar-$VERSION.zip"
 
           if ! gh release view "$TAG" >/dev/null 2>&1; then
               gh release create "$TAG" \
@@ -138,66 +138,8 @@ jobs:
 
           SHA="$(/usr/bin/shasum -a 256 "$ARTIFACT" | awk '{ print $1 }')"
           {
-              echo "## Cask values"
-              echo '```ruby'
-              echo "version \"$VERSION\""
-              echo "sha256 \"$SHA\""
-              echo '```'
+              echo "## Release asset"
+              echo "NewHiddenBar-$VERSION.zip"
+              echo
+              echo "sha256: \`$SHA\`"
           } >> "$GITHUB_STEP_SUMMARY"
-
-      # Keep sdenike/homebrew-tap's cask in step with the release just published.
-      # Commits straight to the tap's default branch rather than opening a pull
-      # request: a PR per release would need merging every time, which is the
-      # manual step this exists to remove. The tap's commit history is the record.
-      #
-      # Needs HOMEBREW_TAP_TOKEN — a PAT with contents:write on sdenike/homebrew-tap.
-      # The workflow's own GITHUB_TOKEN cannot write to another repository.
-      - name: Check for tap token
-        id: taptoken
-        env:
-          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-        run: |
-          set -euo pipefail
-          if [ -n "${TAP_TOKEN:-}" ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::HOMEBREW_TAP_TOKEN is not set — skipping the Homebrew cask update. The release itself is unaffected."
-          fi
-
-      - name: Check out the Homebrew tap
-        if: steps.taptoken.outputs.present == 'true'
-        uses: actions/checkout@v4
-        with:
-          repository: sdenike/homebrew-tap
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          path: homebrew-tap
-
-      - name: Bump hidden-revived cask
-        if: steps.taptoken.outputs.present == 'true'
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          ARTIFACT="dist/HiddenBarRevived-${VERSION}.zip"
-          SHA=$(/usr/bin/shasum -a 256 "$ARTIFACT" | awk '{ print $1 }')
-          CASK="homebrew-tap/Casks/hidden-revived.rb"
-          [ -f "$CASK" ] || { echo "::error::$CASK not found in the tap"; exit 1; }
-
-          /usr/bin/sed -i '' -E "s|^  version \".*\"$|  version \"${VERSION}\"|" "$CASK"
-          /usr/bin/sed -i '' -E "s|^  sha256 \".*\"$|  sha256 \"${SHA}\"|" "$CASK"
-
-          grep -q "version \"${VERSION}\"" "$CASK" || { echo "::error::version substitution failed"; exit 1; }
-          grep -q "sha256 \"${SHA}\"" "$CASK"      || { echo "::error::sha256 substitution failed"; exit 1; }
-
-          cd homebrew-tap
-          if git diff --quiet; then
-            echo "Cask already at ${VERSION}; nothing to do."
-            exit 0
-          fi
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -am "hidden-revived ${VERSION}
-
-          Released by sdenike/hidden-revived's release workflow, run ${GITHUB_RUN_ID}."
-          git push

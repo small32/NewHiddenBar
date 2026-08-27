@@ -1,17 +1,17 @@
 # Contributing
 
-Hidden Bar Revived is a community-maintained fork of [Hidden Bar](https://github.com/dwarvesf/hidden). The project's goal is to keep the app working and modern, not to add major new features. Focused bug fixes, OS-compatibility patches, and small UX refinements are very welcome.
+NewHiddenBar is a community-maintained fork of [Hidden Bar](https://github.com/dwarvesf/hidden). The project's goal is to keep the app working and modern, not to add major new features. Focused bug fixes, OS-compatibility patches, and small UX refinements are very welcome.
 
 ## Filing an issue
 
-Use [GitHub Issues](https://github.com/sdenike/hidden-revived/issues) for bug reports, regressions, and feature questions. Please include:
+Use [GitHub Issues](https://github.com/small32/NewHiddenBar/issues) for bug reports, regressions, and feature questions. Please include:
 
 - macOS version and Mac model
-- Hidden Bar Revived version (visible in **About** inside Preferences)
+- NewHiddenBar version (visible in **About** inside Preferences)
 - Reproduction steps
 - A screenshot, screen recording, or `Console.app` log snippet if relevant
 
-For privacy or security-related concerns, please use [GitHub's private security advisory flow](https://github.com/sdenike/hidden-revived/security/advisories/new) rather than a public issue.
+For privacy or security-related concerns, please use [GitHub's private security advisory flow](https://github.com/small32/NewHiddenBar/security/advisories/new) rather than a public issue.
 
 ## Pull requests
 
@@ -38,4 +38,4 @@ Maintainers merge with `--no-ff` so each PR's history is preserved as a discrete
 
 ## Code of Conduct
 
-This project follows the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). By participating, you agree to abide by its terms. Enforcement concerns can be raised privately via [GitHub's security advisory flow](https://github.com/sdenike/hidden-revived/security/advisories/new).
+This project follows the [Contributor Covenant v2.1](https://www.contributor-covenant.org/version/2/1/code_of_conduct/). By participating, you agree to abide by its terms. Enforcement concerns can be raised privately via [GitHub's security advisory flow](https://github.com/small32/NewHiddenBar/security/advisories/new).

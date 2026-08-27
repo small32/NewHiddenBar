@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — build Hidden Bar Revived in Release and install to /Applications.
+# install.sh — build NewHiddenBar in Release and install to /Applications.
 #
 # Usage: ./scripts/install.sh [--debug] [--no-launch]
 #   --debug      build Debug configuration instead of Release
@@ -33,11 +33,11 @@ cd "$REPO_ROOT"
 PROJECT="Hidden Bar.xcodeproj"
 SCHEME="Hidden Bar"
 DERIVED="build"
-APP_NAME="Hidden Bar Revived"
+APP_NAME="NewHiddenBar"
 BUNDLE_ID="com.sdenike.hiddenbar"
 APP_BUNDLE="$DERIVED/Build/Products/$CONFIG/$APP_NAME.app"
 INSTALL_PATH="/Applications/$APP_NAME.app"
-LOG=/tmp/hiddenbarrevived-build.log
+LOG=/tmp/newhiddenbar-build.log
 
 is_running() {
     pgrep -f "$APP_NAME.app/Contents/MacOS/" >/dev/null 2>&1

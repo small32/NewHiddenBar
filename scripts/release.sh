@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# release.sh — build, sign, notarize, staple, and package Hidden Bar Revived
-# as a distributable `.zip` for GitHub Releases + Homebrew cask.
+# release.sh — build, sign, notarize, staple, and package NewHiddenBar
+# as a distributable `.zip` for GitHub Releases.
 #
 # Usage:
 #   ./scripts/release.sh                       # uses keychain profile HiddenBarNotary
@@ -18,8 +18,8 @@
 # The Developer ID Application certificate must be installed in the login
 # keychain and visible to `security find-identity -v -p codesigning`.
 #
-# Output: dist/HiddenBarRevived-<version>.zip plus a sibling `.sha256` file
-# whose contents are ready to paste into the Homebrew cask.
+# Output: dist/NewHiddenBar-<version>.zip plus a sibling `.sha256` file
+# whose contents are ready to verify the download.
 
 set -euo pipefail
 
@@ -30,7 +30,7 @@ cd "$REPO_ROOT"
 
 PROJECT="Hidden Bar.xcodeproj"
 SCHEME="Hidden Bar"
-APP_NAME="Hidden Bar Revived"
+APP_NAME="NewHiddenBar"
 SIGNING_IDENTITY="${SIGNING_IDENTITY:-Developer ID Application: Shelby Denike (485WH9DHS4)}"
 NOTARY_PROFILE="${NOTARY_PROFILE:-HiddenBarNotary}"
 OUTPUT_DIR="${OUTPUT_DIR:-$REPO_ROOT/dist}"
@@ -46,7 +46,7 @@ if [[ -z "$VERSION" ]]; then
     exit 1
 fi
 
-ARTIFACT_BASE="HiddenBarRevived-$VERSION"
+ARTIFACT_BASE="NewHiddenBar-$VERSION"
 ZIP_PATH="$OUTPUT_DIR/$ARTIFACT_BASE.zip"
 
 echo "==> Releasing $APP_NAME $VERSION ($BUILD_NUMBER)"
@@ -164,6 +164,3 @@ echo ""
 echo "Next steps:"
 echo "  1. gh release create v$VERSION \"$ZIP_PATH\" \\"
 echo "         --title \"v$VERSION\" --notes-file CHANGELOG.md"
-echo "  2. Update Casks/hidden-revived.rb in the homebrew-hidden-revived tap:"
-echo "         version \"$VERSION\""
-echo "         sha256 \"$SHA256\""

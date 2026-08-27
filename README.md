@@ -2,7 +2,7 @@
 	<img width="200" height="200" src="img/icon_512%402x.png">
 </p>
 <p align="center">
-	<a href="https://github.com/sdenike/hidden-revived/releases/latest">
+	<a href="https://github.com/small32/NewHiddenBar/releases/latest">
  		<img src="https://img.shields.io/badge/download-latest-brightgreen.svg" alt="download">
 	</a>
 	<img src="https://img.shields.io/badge/platform-macOS-lightgrey.svg" alt="platform">
@@ -10,9 +10,9 @@
 	<a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"></a>
 </p>
 
-# Hidden Bar Revived
+# NewHiddenBar
 
-**Hidden Bar Revived** is a maintained continuation of the original [Hidden Bar](https://github.com/dwarvesf/hidden) by [Dwarves Foundation](https://github.com/dwarvesf), an ultra-light macOS utility that hides menu bar items to give your Mac a cleaner look.
+**NewHiddenBar** is a maintained continuation of the original [Hidden Bar](https://github.com/dwarvesf/hidden) by [Dwarves Foundation](https://github.com/dwarvesf), an ultra-light macOS utility that hides menu bar items to give your Mac a cleaner look.
 
 The upstream project has been inactive for an extended period. This fork picks up where it left off — merging the most-requested community fixes, resolving the memory leak affecting macOS Sequoia and Tahoe, repairing the Preferences window on modern macOS, and keeping the app compatible with current macOS releases.
 
@@ -28,7 +28,7 @@ The upstream project has been inactive for an extended period. This fork picks u
 - **Preferences window rebuilt for macOS 26 Tahoe.** Compact titlebar with a centered General/About pill, no more transparent-titlebar bleed-through, no more stray "Custom View" labels.
 - **Additional localizations.** Italian, Ukrainian, and Turkish added to the existing ten languages.
 - **Minimum macOS raised to 13 (Ventura).** Aligns with Apple's currently-supported macOS releases as of 2026 and lets the codebase drop a stack of `#available` checks, the legacy upstream PNG icon assets, and several compatibility branches that targeted macOS 10.13 → 12. A migration to `SMAppService` for launch-at-login is planned next, which will also retire the LauncherApplication helper target.
-- **Rebranded with full attribution.** App name is now "Hidden Bar Revived" and the About screen credits both Dwarves Foundation and this fork's maintainer.
+- **Rebranded with full attribution.** App name is now "NewHiddenBar" and the About screen credits both Dwarves Foundation and this fork's maintainer.
 - **"Enable always hidden section" applies immediately** (2.1.1). It previously needed an app restart before the second separator would appear.
 
 See [CHANGELOG.md](CHANGELOG.md) for full release notes.
@@ -37,22 +37,9 @@ See [CHANGELOG.md](CHANGELOG.md) for full release notes.
 
 ### Manual download
 
-- [Download the latest release](https://github.com/sdenike/hidden-revived/releases/latest)
-- Drag **Hidden Bar Revived.app** to your `/Applications` folder
+- [Download the latest release](https://github.com/small32/NewHiddenBar/releases/latest)
+- Drag **NewHiddenBar.app** to your `/Applications` folder
 - Launch it and drag the icon in your menu bar (hold `⌘`) to the right so it sits between some other icons
-
-### Homebrew
-
-```sh
-brew tap sdenike/tap
-brew install --cask hidden-revived
-```
-
-The cask lives in [`sdenike/homebrew-tap`](https://github.com/sdenike/homebrew-tap) and pulls the signed + notarized `.zip` directly from this repo's GitHub Releases.
-
-That tap serves every one of my applications, so you only need to run `brew tap` once — anything added later installs with just `brew install --cask <name>`.
-
-> **Moved from `sdenike/homebrew-hidden-revived`.** If you tapped that repository before August 2026, run `brew untap sdenike/hidden-revived` and then the two commands above.
 
 ### Mac App Store
 
@@ -60,15 +47,17 @@ Coming soon. The fork is being prepared for Mac App Store submission under a new
 
 ## Usage
 
-- `⌘` + drag to move icons around in the menu bar, including into and out of Hidden Bar's hidden section
+- `⌘` + drag to move icons around in the menu bar, including into and out of NewHiddenBar's hidden section
 - Click the arrow icon to collapse / expand the hidden section
 - Optional global hotkey for toggling, configurable in Preferences → General
 - Option-click the arrow icon to show / hide the separators themselves
 - Preferences → General → **Enable always hidden section** adds a second separator. Icons you `⌘` + drag to the far side of it stay hidden even when the bar is expanded — they are only revealed by option-clicking the arrow icon
 
+<!--
 <p align="center">
 	<img src="img/tutorial.gif" alt="Tutorial showing how to hide icons">
 </p>
+-->
 
 ## Requirements
 
@@ -78,26 +67,26 @@ Coming soon. The fork is being prepared for Mac App Store submission under a new
 ## Building from source
 
 ```
-git clone https://github.com/sdenike/hidden-revived.git
-cd hidden-revived
+git clone https://github.com/small32/NewHiddenBar.git
+cd NewHiddenBar
 ./scripts/install.sh
 ```
 
-`scripts/install.sh` builds the Release configuration, gracefully quits any running instance, replaces `/Applications/Hidden Bar Revived.app`, and launches the fresh build. Pass `--no-launch` to skip launching, or `--debug` to build the Debug configuration instead.
+`scripts/install.sh` builds the Release configuration, gracefully quits any running instance, replaces `/Applications/NewHiddenBar.app`, and launches the fresh build. Pass `--no-launch` to skip launching, or `--debug` to build the Debug configuration instead.
 
 Alternatively, open `Hidden Bar.xcodeproj` in Xcode, set your Development Team under Signing & Capabilities, and run.
 
 ## Contributing
 
-Bug reports and focused PRs are welcome. The goal of this fork is to keep Hidden Bar working — not to add major new features. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
+Bug reports and focused PRs are welcome. The goal of this fork is to keep NewHiddenBar working — not to add major new features. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a PR.
 
 ## Credits
 
 - **Original authors:** [Dwarves Foundation](https://github.com/dwarvesf) — Thanh Nguyen, Phuc Le Dien, and the wider contributor community
 - **Community fixes incorporated into 2.0:** @laveez (ultrawide / multi-monitor), @huynguyenh and @rm335 (memory leaks), @gmcinalli (Italian), @voltangle (Ukrainian), @Metekilic (Turkish)
 - **Upstream contributor list:** [dwarvesf/hidden/graphs/contributors](https://github.com/dwarvesf/hidden/graphs/contributors)
-- **Maintainer of this fork:** [Shelby DeNike](https://github.com/sdenike)
+- **Maintainer of this fork:** [small32](https://github.com/small32)
 
 ## License
 
-MIT — see [LICENSE](LICENSE). © 2019 Dwarves Foundation · © 2026 Shelby DeNike.
+MIT — see [LICENSE](LICENSE). © 2019 Dwarves Foundation · © 2026 small32.

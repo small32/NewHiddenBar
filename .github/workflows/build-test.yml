@@ -50,17 +50,17 @@ jobs:
       - name: Inspect product
         run: |
           ls -la build/Build/Products/Release/
-          codesign -dv "build/Build/Products/Release/Hidden Bar Revived.app" 2>&1 || true
+          codesign -dv "build/Build/Products/Release/NewHiddenBar.app" 2>&1 || true
 
       - name: Zip the app
         run: |
           cd build/Build/Products/Release
           ditto -c -k --sequesterRsrc --keepParent \
-            "Hidden Bar Revived.app" HiddenBarRevived-test.zip
+            "NewHiddenBar.app" NewHiddenBar-test.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: HiddenBarRevived-test
-          path: build/Build/Products/Release/HiddenBarRevived-test.zip
+          name: NewHiddenBar-test
+          path: build/Build/Products/Release/NewHiddenBar-test.zip
           if-no-files-found: error
